@@ -1,0 +1,316 @@
+
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oylik Bot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <h2>💰 Oylik Bot</h2>
+    <button onclick="showPage('home')">🏠 Bosh sahifa</button>
+    <button onclick="showPage('lists')">📋 Ro‘yxatlar</button>
+    <button onclick="showPage('info')">ℹ️ Ma'lumot</button>
+    <div class="side-bottom">Oylik Bot © 2026</div>
+</div>
+
+<main>
+    <section id="home" class="page">
+        <h1>Moliyaviy boshqaruv</h1>
+        <p class="subtitle">Oyligingizni nazorat qiling!</p>
+
+        <div class="budget-box">
+            <h3>Oylik summangizni kiriting</h3>
+            <div class="input-row">
+                <input type="number" id="salary" placeholder="Masalan: 5000000">
+                <button onclick="setSalary()">Saqlash</button>
+            </div>
+        </div>
+
+        <div class="cards">
+            <div class="card blue">
+                <p>💰 Umumiy oylik</p>
+                <h2 id="total">0 so'm</h2>
+            </div>
+            <div class="card red">
+                <p>📉 Sarflangan pul</p>
+                <h2 id="spent">0 so'm</h2>
+            </div>
+            <div class="card green">
+                <p>💵 Qolgan pul</p>
+                <h2 id="remaining">0 so'm</h2>
+            </div>
+        </div>
+
+        <div class="progress-box">
+            <h3>Oylik xarajatlari</h3>
+            <div class="progress">
+                <div id="progressBar"></div>
+            </div>
+            <p id="progressText">0% sarflangan</p>
+        </div>
+
+        <div class="panel">
+            <h2>🛒 Yangi xarid qo‘shish</h2>
+            <input id="itemName" placeholder="Nima sotib oldingiz?">
+            <input id="itemPrice" type="number" placeholder="Narxi (so'm)">
+            <button onclick="addPurchase()">Xaridni qo‘shish</button>
+        </div>
+
+        <div class="panel">
+            <h2>📜 Xaridlar tarixi</h2>
+            <div id="purchaseHistory">
+                <p class="empty">Hozircha xaridlar mavjud emas.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="lists" class="page hidden">
+        <h1>📋 Mening ro‘yxatlarim</h1>
+        <p class="subtitle">Kerakli narsalaringizni yozib boring.</p>
+
+        <div class="panel">
+            <h2>Yangi ro‘yxat yaratish</h2>
+            <input id="listName" placeholder="Ro‘yxat nomi">
+            <textarea id="listItems" placeholder="Narsalarni yozing..."></textarea>
+            <button onclick="addList()">Ro‘yxatni saqlash</button>
+        </div>
+
+        <div class="panel">
+            <h2>Ro‘yxatlar tarixi</h2>
+            <div id="listHistory">
+                <p class="empty">Hozircha ro‘yxatlar mavjud emas.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="info" class="page hidden">
+        <h1>ℹ️ Sayt haqida</h1>
+        <p class="subtitle">Oylik Bot foydalanish qo‘llanmasi.</p>
+
+        <div class="panel">
+            <h2>1. Oylik summasi</h2>
+            <p>Oyligingiz miqdorini kiriting va saqlash tugmasini bosing.</p>
+        </div>
+
+        <div class="panel">
+            <h2>2. Xaridlar</h2>
+            <p>Xarid nomi va narxini kiriting. Sayt sarflangan pulni avtomatik hisoblaydi.</p>
+        </div>
+
+        <div class="panel">
+            <h2>3. Ro‘yxatlar</h2>
+            <p>Kerakli narsalaringiz uchun alohida ro‘yxatlar yaratishingiz mumkin.</p>
+        </div>
+
+        <div class="panel">
+            <h2>4. Ma'lumotlar</h2>
+            <p>Ma'lumotlaringiz ushbu brauzer xotirasida saqlanadi. Boshqa qurilmada avtomatik ko‘rinmasligi mumkin.</p>
+        </div>
+    </section>
+</main>
+
+<script>
+let salary = Number(localStorage.getItem("salary")) || 0;
+let purchases = JSON.parse(localStorage.getItem("purchases")) || [];
+let lists = JSON.parse(localStorage.getItem("lists")) || [];
+
+function money(number) {
+    return number.toLocaleString("uz-UZ") + " so'm";
+}
+
+function saveData() {
+    localStorage.setItem("salary", salary);
+    localStorage.setItem("purchases", JSON.stringify(purchases));
+    localStorage.setItem("lists", JSON.stringify(lists));
+}
+
+function updateDashboard() {
+    let spent = purchases.reduce((sum, item) => sum + item.price, 0);
+    let remaining = salary - spent;
+
+    document.getElementById("total").textContent = money(salary);
+    document.getElementById("spent").textContent = money(spent);
+    document.getElementById("remaining").textContent = money(remaining);
+
+    let percent = salary > 0 ? (spent / salary) * 100 : 0;
+    document.getElementById("progressBar").style.width =
+        Math.min(percent, 100) + "%";
+
+    document.getElementById("progressText").textContent =
+        Math.round(percent) + "% sarflangan";
+
+    renderPurchases();
+}
+
+function setSalary() {
+    let value = Number(document.getElementById("salary").value);
+
+    if (!Number.isFinite(value) || value <= 0) {
+        alert("To'g'ri oylik summasini kiriting!");
+        return;
+    }
+
+    salary = value;
+    saveData();
+    updateDashboard();
+    alert("Oylik summasi saqlandi!");
+}
+
+function addPurchase() {
+    let name = document.getElementById("itemName").value.trim();
+    let price = Number(document.getElementById("itemPrice").value);
+
+    if (!name || !Number.isFinite(price) || price <= 0) {
+        alert("Xarid nomi va narxini to'g'ri kiriting!");
+        return;
+    }
+
+    purchases.unshift({
+        id: Date.now(),
+        name: name,
+        price: price,
+        date: new Date().toLocaleString("uz-UZ")
+    });
+
+    saveData();
+    updateDashboard();
+
+    document.getElementById("itemName").value = "";
+    document.getElementById("itemPrice").value = "";
+}
+
+function renderPurchases() {
+    let container = document.getElementById("purchaseHistory");
+    container.innerHTML = "";
+
+    if (purchases.length === 0) {
+        container.innerHTML = '<p class="empty">Hozircha xaridlar mavjud emas.</p>';
+        return;
+    }
+
+    purchases.forEach(item => {
+        let div = document.createElement("div");
+        div.className = "history-item";
+
+        let details = document.createElement("div");
+        let title = document.createElement("strong");
+        title.textContent = item.name;
+        let date = document.createElement("small");
+        date.textContent = item.date;
+
+        details.append(title, date);
+
+        let price = document.createElement("b");
+        price.textContent = "-" + money(item.price);
+
+        let del = document.createElement("button");
+        del.className = "delete";
+        del.textContent = "O'chirish";
+        del.onclick = () => {
+            if (confirm("Ushbu xaridni o'chirasizmi?")) {
+                purchases = purchases.filter(p => p.id !== item.id);
+                saveData();
+                updateDashboard();
+            }
+        };
+
+        div.append(details, price, del);
+        container.appendChild(div);
+    });
+}
+
+function addList() {
+    let name = document.getElementById("listName").value.trim();
+    let items = document.getElementById("listItems").value.trim();
+
+    if (!name || !items) {
+        alert("Ro'yxat nomi va narsalarni kiriting!");
+        return;
+    }
+
+    lists.unshift({
+        id: Date.now(),
+        name: name,
+        items: items,
+        date: new Date().toLocaleString("uz-UZ")
+    });
+
+    saveData();
+    renderLists();
+
+    document.getElementById("listName").value = "";
+    document.getElementById("listItems").value = "";
+}
+
+function renderLists() {
+    let container = document.getElementById("listHistory");
+    container.innerHTML = "";
+
+    if (lists.length === 0) {
+        container.innerHTML = '<p class="empty">Hozircha ro‘yxatlar mavjud emas.</p>';
+        return;
+    }
+
+    lists.forEach(list => {
+        let div = document.createElement("div");
+        div.className = "history-item list-item";
+
+        let details = document.createElement("div");
+        let title = document.createElement("strong");
+        title.textContent = list.name;
+        let items = document.createElement("p");
+        items.textContent = list.items;
+        let date = document.createElement("small");
+        date.textContent = "📅 " + list.date;
+
+        details.append(title, items, date);
+
+        let del = document.createElement("button");
+        del.className = "delete";
+        del.textContent = "O'chirish";
+        del.onclick = () => {
+            if (confirm("Ro'yxatni o'chirasizmi?")) {
+                lists = lists.filter(l => l.id !== list.id);
+                saveData();
+                renderLists();
+            }
+        };
+
+        div.append(details, del);
+        container.appendChild(div);
+    });
+}
+
+function showPage(page) {
+    document.querySelectorAll(".page").forEach(section => {
+        section.classList.add("hidden");
+    });
+
+    document.getElementById(page).classList.remove("hidden");
+
+    document.querySelectorAll(".sidebar button").forEach(btn => {
+        btn.classList.remove("active");
+    });
+
+    const buttons = {
+        home: 0,
+        lists: 1,
+        info: 2
+    };
+
+    document.querySelectorAll(".sidebar button")[buttons[page]]
+        .classList.add("active");
+}
+
+document.getElementById("salary").value = salary || "";
+updateDashboard();
+renderLists();
+showPage("home");
+</script>
+
+</body>
+</html>
